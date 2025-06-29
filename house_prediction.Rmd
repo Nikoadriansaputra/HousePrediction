@@ -1,0 +1,100 @@
+---
+title: "House Price Prediction"
+author: "Niko"
+date: "2025-06-29"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+runtime: shiny
+---
+
+
+
+
+```{r}
+# Load necessary libraries
+library(shiny)
+
+# Load the data
+house <- read.csv("D:\\OneDrive - Universitas Islam Indonesia\\College\\Statistics\\Statistical Computing\\rumah.csv", sep=";", header = TRUE)
+
+# Function to remove outliers using IQR method
+remove_outliers <- function(data) {
+  # Define columns to check for outliers
+  numeric_columns <- c("LB", "LT", "KT", "KM", "GRS", "HARGA")
+  
+  # Loop through each numeric column to identify and remove outliers
+  for (col in numeric_columns) {
+    Q1 <- quantile(data[[col]], 0.25)
+    Q3 <- quantile(data[[col]], 0.75)
+    IQR_val <- Q3 - Q1
+    lower_bound <- Q1 - 1.5 * IQR_val
+    upper_bound <- Q3 + 1.5 * IQR_val
+    
+    # Filter out the rows with values outside the IQR range
+    data <- data[data[[col]] >= lower_bound & data[[col]] <= upper_bound, ]
+  }
+  
+  return(data)
+}
+
+# Remove outliers from the dataset
+house_clean <- remove_outliers(house)
+
+# Fit the linear regression model on the clean data
+model <- lm(HARGA ~ LB + LT + KT + KM + GRS, data = house_clean)
+
+# Define UI for house prediction app
+ui <- fluidPage(
+  titlePanel("House Price Prediction"),
+  
+  # Adjust layout: remove the sidebar and have inputs and outputs only
+  fluidRow(
+    column(6,
+      # Input specifications
+      numericInput("LB", "Living Area (LB) in m²:", value = 100, min = 1),
+      numericInput("LT", "Land Area (LT) in m²:", value = 120, min = 1),
+      numericInput("KT", "Number of bedrooms (KT):", value = 3, min = 1),
+      numericInput("KM", "Number of bathrooms (KM):", value = 2, min = 0),
+      numericInput("GRS", "Number of garage (GRS):", value = 1, min = 1),
+      
+      actionButton("predict", "Predict Price")
+    ),
+    
+    column(6,
+      # Output: Predicted house price
+      h3("Predicted House Price (in Rupiah)"),
+      textOutput("price")
+    )
+  )
+)
+
+# Define server logic
+server <- function(input, output) {
+  
+  # Define the prediction logic
+  observeEvent(input$predict, {
+    # Get inputs from the user
+    user_input <- data.frame(
+      LB = input$LB,
+      LT = input$LT,
+      KT = input$KT,
+      KM = input$KM,
+      GRS = input$GRS
+    )
+    
+    # Predict the price using the model
+    predicted_price <- predict(model, newdata = user_input)
+    
+    # Show the predicted price with dot separators for thousands
+    output$price <- renderText({
+      formatted_price <- format(predicted_price, big.mark = ".", scientific = FALSE)
+      paste("Rp", formatted_price)
+    })
+  })
+}
+
+# Run the application
+shinyApp(ui = ui, server = server)
+```
