@@ -17,7 +17,7 @@ runtime: shiny
 library(shiny)
 
 # Load the data
-house <- read.csv("D:\\OneDrive - Universitas Islam Indonesia\\College\\Statistics\\Statistical Computing\\rumah.csv", sep=";", header = TRUE)
+house <- read.csv("rumah.csv", sep=";", header = TRUE)
 
 # Function to remove outliers using IQR method
 remove_outliers <- function(data) {
